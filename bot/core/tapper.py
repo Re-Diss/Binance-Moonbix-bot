@@ -103,6 +103,7 @@ class Tapper:
             auth_url = web_view.url
             tg_web_data = unquote(string=auth_url.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
 
+
             if self.tg_client.is_connected:
                 await self.tg_client.disconnect()
 
@@ -218,9 +219,6 @@ class Tapper:
             logger.warning(f"{self.session_name} | <red>Get access token failed: {data_}</red>")
 
     def random_data_type(self, type, end_time, item_size, item_pts, pos_y: float):
-        # I WOKED HARD TO FIND OUT THIS.SO IF U COPY PLEASE CREDIT ME !
-
-        # end_time = int(end_time)
         if type == 1:
             pick_time = self.curr_time + self.rs
             if pick_time >= end_time:
@@ -249,7 +247,6 @@ class Tapper:
 
             hook_pos_x = "{:.3f}".format(round(uniform(75, 230), 3))
             hook_pos_y = "{:.3f}".format(round(uniform(199, 230), 3))
-           #  hook_shot_angle = "{:.3f}".format(round(uniform(-1, 1), 3))
             hook_hit_x = "{:.3f}".format(round(uniform(100, 400), 3))
             hook_hit_y = "{:.3f}".format(pos_y)
             multi = (float(hook_hit_x) - float(hook_pos_x)) * (float(hook_hit_x) - float(hook_pos_x))
@@ -296,24 +293,20 @@ class Tapper:
             item_s = randint(1, 100)
             point = randint(1, 200)
 
-        # 1727080937255|272.705|208.070|-0.944|0|0|2|38|12;1727080938339|224.985|241.018|-0.432|249.685|294.600|1|70|182;1727080941172|124.175|241.530|0.420|0|0|2|57|186;1727080943373|77.580|210.808|0.910|0|0|2|7|140;1727080944891|181.929|250.277|-0.066|189.091|359.041|2|60|90;1727080948123|269.666|211.426|-0.902|0|0|2|92|11;1727080949024|279.568|199.250|-1.047|0|0|2|60|34;1727080950908|162.174|250.020|0.096|144.951|428.190|0|30|191;1727080953975|78.758|212.055|0.895|0|0|0|1|151;1727080955243|133.916|244.791|0.334|103.100|333.596|1|30|15;1727080957193|278.835|200.291|-1.035|0|0|1|5|150;1727080959444|209.788|245.932|-0.298|303.593|550.828|1|70|72;1727080965178|87.635|220.354|0.786|0|0|1|85|73;1727080967129|168.297|250.390|0.046|156.376|509.116|1|50|110;1727080971647|188.297|249.779|-0.118|209.403|427.530|1|30|30;1727080974548|145.269|252.269|0.237|105.591|416.545|1|30|92;1727080978299|172.753|252.036|0.010|168.866|661.017|1|50|13
         data = f"{pick_time}|{hook_pos_x}|{hook_pos_y}|{hook_shot_angle}|{hook_hit_x}|{hook_hit_y}|{item_type}|{item_s}|{point}"
         return data
 
     def encrypt(self, text, key):
         iv = get_random_bytes(12)
         iv_base64 = base64_encode(iv)
-        # print(iv_base64[:16].encode('utf-8'))
         cipher = AES.new(key.encode('utf-8'), AES.MODE_CBC, iv_base64[:16].encode('utf-8'))
         ciphertext = cipher.encrypt(pad(text.encode('utf-8'), AES.block_size))
         ciphertext_base64 = base64_encode(ciphertext)
         return iv_base64 + ciphertext_base64
 
     def get_game_data(self):
-        # I WOKED HARD TO FIND OUT THIS.SO IF U COPY PLEASE CREDIT ME !
         try:
             end_time = int((time() + 45) * 1000)
-            # print(end_time)
             random_pick_time = randint(3, 15)
             total_obj = 0
             key_for_game = self.game_response['data']['gameTag']
@@ -402,7 +395,7 @@ class Tapper:
                                     obj_type["coin"].pop(reward_d)
                             else:
                                 break
-                elif random_reward > 70 and random_reward <= 90 and picked_bonus is False:
+                elif random_reward > 70 and random_reward <= 100 and picked_bonus is False:
                     picked += 1
                     size = obj_type['bonus'].split(',')[1]
                     pts = obj_type['bonus'].split(',')[0]
@@ -416,27 +409,22 @@ class Tapper:
                         picked_bonus = True
                         score += int(pts)
                         game_data_payload.append(data_)
-                else:
-                    data_ = self.random_data_type(end_time=end_time,
-                                                  type=-1,
-                                                  item_size=0,
-                                                  item_pts=0,
-                                                  pos_y=sorted_pos_y[Total_tap])
-                    game_data_payload.append(data_)
-                    Total_tap += 1
 
                 self.curr_time += self.rs
 
-            data_pl = ';'.join(game_data_payload)
-            # print(data_pl)
-            game_payload = self.encrypt(data_pl, key_for_game)
-            self.game = {
-                "payload": game_payload,
-                "log": score,
-                "debug": data_pl
-            }
-            # print(self.game)
-            return True
+            if len(game_data_payload) > 0:
+
+                data_pl = ';'.join(game_data_payload)
+                game_payload = self.encrypt(data_pl, key_for_game)
+                self.game = {
+                    "payload": game_payload,
+                    "log": score,
+                    "debug": data_pl
+                }
+                return True
+            else:
+                logger.warning(f"{self.session_name} | <yellow>Failed to play game, reason: Time out</yellow>")
+                return False
         except Exception as error:
             traceback.print_exc()
             logger.error(f"{self.session_name} | <red>Unknown error while trying to get game data: {str(error)}</red>")
@@ -559,7 +547,6 @@ class Tapper:
             "payload": string_payload,
             "resourceId": 2056
         }
-        # print(payload)
         response = session.post(
             "https://www.binance.com/bapi/growth/v1/friendly/growth-paas/mini-app-activity/third-party/game/complete",
             headers=headers, json=payload)
@@ -569,7 +556,7 @@ class Tapper:
             logger.success(
                 f"{self.session_name} | <green>Sucessfully earned: <yellow>{self.game['log']}</yellow> from game !</green>")
         else:
-            logger.warning(f"{self.session_name} | <yellow>Failed to complete game | {self.game['log']}: {self.game['debug']} Send this to me so i can fix it !</yellow>")
+            logger.warning(f"{self.session_name} | <yellow>Failed to complete game | {self.game['log']}: {data_}</yellow>")
 
     def auto_update_ticket(self, session: cloudscraper.CloudScraper):
         ticket_data = self.get_user_info1(session)
